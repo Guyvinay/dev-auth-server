@@ -1,0 +1,247 @@
+################################################################################
+# APPLICATION CONFIGURATION
+################################################################################
+spring:
+  application:
+    name: dev-auth-server
+
+  ##############################################################################
+  # LIQUIBASE CONFIGURATION
+  ##############################################################################
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog/dev-auth.changelog-master.xml
+    contexts: "!test"       # Exclude test context
+    # liquibase-schema: public
+    # database-change-log-table: DATABASECHANGELOG
+    # database-change-log-lock-table: DATABASECHANGELOGLOCK
+
+
+  ##############################################################################
+  # KAFKA CONFIGURATION (Spring Kafka)
+  ##############################################################################
+  kafka:
+    bootstrap-servers: localhost:9092
+
+    consumer:
+      group-id: my-group
+      auto-offset-reset: earliest  # reads from beginning if no offset
+
+    producer:
+      retries: 3
+      acks: all                    # strongest delivery guarantee
+      properties:
+        linger.ms: 5               # batching for performance
+        enable.idempotence: true   # ensures exactly-once semantics
+
+
+  ##############################################################################
+  # JPA / HIBERNATE CONFIGURATION
+  ##############################################################################
+  jpa:
+    open-in-view: false             # recommended for stateless APIs
+    hibernate:
+      ddl-auto: none                # validate | update | create-drop | none
+    properties:
+      org.hibernate.envers.store_data_at_delete: true  # keep audit logs for deleted rows
+
+
+
+  ##############################################################################
+  # OAUTH2 CLIENT REGISTRATION (GitHub & Google Login)
+  ##############################################################################
+  security:
+    oauth2:
+      client:
+        registration:
+
+          github:
+            client-id: ${client-id}
+            client-secret: ${client-secret}
+            scope: read:user, user:email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}" # "{baseUrl}/login/oauth2/code/{registrationId}"
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            client-name: GitHub
+
+          google:
+            client-id: ${client-it}
+            client-secret: ${client-secret}
+            scope: profile, email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            authorization-grant-type: authorization_code
+            client-name: Google
+
+        provider:
+
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: login
+
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+
+
+
+  ##############################################################################
+  # MAIL CONFIGURATION (SMTP)
+  ##############################################################################
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: mrsinghvinay563@gmail.com
+    password: ${password}        # MUST be env/secret in production
+    properties:
+      mail.debug: false
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 15000
+      mail.smtp.writetimeout: 15000
+      mail.smtp.pool: true
+      mail.smtp.pool.size: 5
+
+
+  ##############################################################################
+  # REDIS + CACHE CONFIGURATION (Lettuce)
+  ##############################################################################
+  redis:
+    host: localhost
+    port: 6379
+    # password: ${REDIS_PASSWORD:}  # Use secrets in production
+    database: 100
+
+    lettuce:
+      pool:
+        max-active: 20
+        max-idle: 10
+        min-idle: 2
+
+  cache:
+    type: redis                       # Use Redis as cache backend
+
+################################################################################
+# SERVER CONFIGURATION
+################################################################################
+server:
+  port: 8000
+  address: 0.0.0.0
+  servlet:
+    context-path: /dev-auth-server
+
+  canonical:
+    url: http://localhost:8000/dev-auth-server
+
+  name: localhost
+
+
+
+################################################################################
+# JWT SECURITY CONFIG
+################################################################################
+security:
+  jwt:
+    issuer: dev-auth-server
+    audience:
+      - dev-sandbox
+      - dev-integration
+    access-expiry-minutes: 1440 # 1 day
+    refresh-expiry-minutes: 10080 # 7 days
+
+
+################################################################################
+# ELASTICSEARCH (Custom index settings)
+################################################################################
+elastic:
+  index:
+    private: es_private_message_index
+    group: es_group_message_index
+    email: email_index
+
+
+
+################################################################################
+# KAFKA (Custom App Kafka — separate from spring.kafka)
+################################################################################
+kafka:
+  bootstrap-servers: localhost:9092
+
+
+
+################################################################################
+# RABBITMQ (Custom Auth Rabbit Settings)
+################################################################################
+auth:
+  rabbit:
+    host: ${RABBIT_HOST:localhost}
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: public
+
+    management-base-url: ${RABBIT_MANAGEMENT_BASE_URL:http://localhost:15672/api}
+    management-user: guest
+    management-password: guest
+
+    publisher-confirms: true
+    publisher-returns: true
+
+    exchanges:
+      - name: tenant.events.exchange
+        type: topic
+        durable: true
+
+      - name: tenant.dataset.exchange
+        type: direct
+        durable: true
+
+
+
+################################################################################
+# ACTUATOR + PROMETHEUS METRICS
+################################################################################
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+
+  endpoint:
+    prometheus:
+      enabled: true
+
+  metrics:
+    tags:
+      application: ${spring.application.name}  # helpful for dashboards
+
+
+################################################################################
+# APPLICATION LEVEL PROPERTIES
+################################################################################
+app:
+  redis:
+    key-prefix: dev-auth              # separates keys per microservice
+    cache:
+      default-ttl-minutes: 15         # default cache TTL
+
+
+  bootstrap:
+    enabled: true
+
+    system-org:
+      name: SYSTEM
+      email: mrsinghvinay563@gmail.com
+      contact: 7479856872
+
+    public-tenant:
+      id: public
+      name: Public Tenant
+
+    admin:
+      email: mrsinghvinay563@gmail.com
+      password: password
+      name: System Administrator
