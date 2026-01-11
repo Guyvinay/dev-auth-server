@@ -1,0 +1,210 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="2025:01:26-09:53" author="vinay.singh">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="AUTH_REV_INFO_TABLE"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="AUTH_REV_INFO_TABLE">
+            <column name="ID" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="TIMESTAMP" type="BIGINT"/>
+            <column name="USERMODIFIED" type="NVARCHAR(150)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="2025:01:26-00:56" author="vinay.singh">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="USER_PROFILE_MODEL_AUD"/>
+            </not>
+        </preConditions>
+        <createTable tableName="USER_PROFILE_MODEL_AUD">
+            <column name="id" type="UUID"/>
+            <column name="password" type="VARCHAR(255)"/>
+            <column name="email" type="VARCHAR(100)"/>
+            <column name="name" type="VARCHAR(50)"/>
+            <column name="is_active" type="BOOLEAN"/>
+
+            <column name="created_at" type="BIGINT"/>
+            <column name="updated_at" type="BIGINT"/>
+
+            <!-- To enable auditing -->
+            <column name="REV" type="BIGINT">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="REVTYPE" type="tinyint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TIMESTAMP" type="timestamp"/>
+        </createTable>
+
+    </changeSet>
+
+    <changeSet id="2025:01:26-14:14" author="vinay.singh">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="USER_PROFILE_ROLE_INFO_MODEL_AUD"/>
+            </not>
+        </preConditions>
+        <createTable tableName="USER_PROFILE_ROLE_INFO_MODEL_AUD">
+            <column name="ROLE_ID" type="BIGINT"/>
+            <column name="ROLE_NAME" type="VARCHAR(100)"/>
+            <column name="STATUS" type="BOOLEAN"/>
+            <column name="TENANT_ID" type="VARCHAR(100)"/>
+            <column name="IS_ADMIN" type="BOOLEAN"/>
+            <column name="DESCRIPTION" type="VARCHAR(255)"/>
+            <column name="CREATED_AT" type="BIGINT"/>
+            <column name="UPDATED_AT" type="BIGINT"/>
+            <column name="CREATED_BY" type="VARCHAR(100)"/>
+            <column name="UPDATED_BY" type="VARCHAR(100)"/>
+
+            <!-- To enable auditing -->
+            <column name="REV" type="BIGINT">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="REVTYPE" type="tinyint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TIMESTAMP" type="timestamp"/>
+        </createTable>
+
+    </changeSet>
+
+    <changeSet id="2025:03:31-20:27" author="vinay.singh">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="USER_PROFILE_ROLE_MAPPING_AUD"/>
+            </not>
+        </preConditions>
+        <createTable tableName="USER_PROFILE_ROLE_MAPPING_AUD">
+            <column name="ID" type="UUID"/>
+            <column name="ROLE_ID" type="BIGINT"/>
+            <column name="TENANT_ID" type="VARCHAR(255)"/>
+            <column name="USER_ID" type="UUID"/>
+            <column name="IS_DEFAULT" type="BOOLEAN"/>
+
+            <!-- To enable auditing -->
+            <column name="REV" type="BIGINT">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="REVTYPE" type="tinyint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TIMESTAMP" type="timestamp"/>
+        </createTable>
+    </changeSet>
+
+
+    <changeSet id="2025:01:26-14:15" author="vinay.singh">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="USER_PROFILE_PRIVILEGE_INFO_MODEL"/>
+            </not>
+        </preConditions>
+        <createTable tableName="USER_PROFILE_PRIVILEGE_INFO_MODEL">
+            <column name="ID" type="UUID"/>
+            <column name="ROLE_ID" type="BIGINT"/>
+            <column name="PRIVILEGE" type="VARCHAR(50)"/>
+            <column name="ACTION" type="VARCHAR(50)"/>
+            <column name="AREA" type="VARCHAR(50)"/>
+            <column name="ASSIGNED_AT" type="BIGINT"/>
+            <column name="ASSIGNED_BY" type="UUID"/>
+
+            <!-- To enable auditing -->
+            <column name="REV" type="BIGINT">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="REVTYPE" type="tinyint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TIMESTAMP" type="timestamp"/>
+        </createTable>
+
+    </changeSet>
+
+    <changeSet id="2025:02:06-23:20" author="vinay.singh">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ORGANIZATION_INFO_MODEL_AUD"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ORGANIZATION_INFO_MODEL_AUD">
+            <column name="ORG_ID" type="UUID"/>
+            <column name="ORG_CONTACT" type="BIGINT"/>
+            <column name="ORG_NAME" type="VARCHAR(100)"/>
+            <column name="ORG_EMAIL" type="VARCHAR(100)"/>
+            <column name="CREATED_AT" type="BIGINT"/>
+            <column name="UPDATED_AT" type="BIGINT"/>
+            <column name="CREATED_BY" type="VARCHAR(100)"/>
+            <column name="UPDATED_BY" type="VARCHAR(100)"/>
+
+            <!-- To enable auditing -->
+            <column name="REV" type="BIGINT">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="REVTYPE" type="tinyint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TIMESTAMP" type="timestamp"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="2025:02:05-23:32" author="vinay.singh">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ORG_TENANT_MAPPING_AUD"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ORG_TENANT_MAPPING_AUD">
+            <column name="TENANT_ID" type="VARCHAR(100)"/>
+            <column name="ORG_ID" type="UUID"/>
+            <column name="TENANT_NAME" type="VARCHAR(100)"/>
+            <column name="TENANT_ACTIVE" type="BOOLEAN"/>
+            <column name="CREATED_AT" type="BIGINT"/>
+            <column name="UPDATED_AT" type="BIGINT"/>
+
+            <!-- To enable auditing -->
+            <column name="REV" type="BIGINT">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="REVTYPE" type="tinyint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TIMESTAMP" type="timestamp"/>
+        </createTable>
+
+    </changeSet>
+
+    <changeSet id="2025:02:06-00:00" author="vinay.singh">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="USER_TENANT_MAPPING_AUD"/>
+            </not>
+        </preConditions>
+        <createTable tableName="USER_TENANT_MAPPING_AUD">
+            <column name="ID" type="UUID"/>
+            <column name="TENANT_ID" type="VARCHAR(255)"/>
+            <column name="USER_ID" type="UUID"/>
+            <column name="ORGANIZATION_ID" type="UUID"/>
+
+            <!-- To enable auditing -->
+            <column name="REV" type="BIGINT">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="REVTYPE" type="tinyint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TIMESTAMP" type="timestamp"/>
+        </createTable>
+    </changeSet>
+
+
+</databaseChangeLog>
