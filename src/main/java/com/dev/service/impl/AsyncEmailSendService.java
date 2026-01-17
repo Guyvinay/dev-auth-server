@@ -74,7 +74,7 @@ public class AsyncEmailSendService {
             // ============================================================
             // 3️Send email
             // ============================================================
-//            mailSender.send(message);
+            mailSender.send(message);
 
             // ============================================================
             // 4️Update EmailDocument metadata
