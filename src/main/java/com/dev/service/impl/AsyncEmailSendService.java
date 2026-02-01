@@ -10,8 +10,9 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -43,7 +44,6 @@ public class AsyncEmailSendService {
 
         long startTime = Instant.now().toEpochMilli();
         log.info("Preparing to send email to [{}] on thread [{}]", emailDocument.getEmailTo(), threadName);
-
         try {
             // ============================================================
             // 1️Prepare message
@@ -62,7 +62,10 @@ public class AsyncEmailSendService {
 
             if(CollectionUtils.isNotEmpty(emailDocument.getAttachmentNames())) {
                 for (String attachmentName: emailDocument.getAttachmentNames()) {
-                    File file = new File("/home/guyvinay/dev/repo/assets/" + attachmentName);
+                    Resource resource = new ClassPathResource("data/" + attachmentName);
+
+                    File file = resource.getFile();
+
                     if(file.exists()) {
                         messageHelper.addAttachment(attachmentName, file);
                     } else {

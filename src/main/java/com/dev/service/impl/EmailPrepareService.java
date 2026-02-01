@@ -14,16 +14,19 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -45,7 +48,7 @@ public class EmailPrepareService {
 
     private final TemplateEngine templateEngine;
     private final EmailElasticSyncService emailElasticSyncService;
-    private static final int HOURS_TO = 12;
+    private static final int HOURS_TO = 360;
     private final AsyncEmailSendService asyncEmailSendService;
 
     @GrpcClient(DEV_INTEGRATION)
@@ -66,6 +69,8 @@ public class EmailPrepareService {
                     .forEach(doc -> existingDocs.put(doc.getEmailTo(), GrpcMapper.fromProto(doc)));
 
         }
+
+        log.info("Existing doc found: {}", existingDocs.size());
 
         for (String emailId : allEmails) {
             EmailRequest req = toSend.get(emailId);
@@ -96,7 +101,7 @@ public class EmailPrepareService {
             }
             try {
                 asyncEmailSendService.sendEmail(emailDocument);
-                Thread.sleep(0);
+                Thread.sleep(2500);
             } catch (IOException | InterruptedException e) {
                 log.error("Failed to send email to: {}", emailId, e);
                 throw new RuntimeException(e);
@@ -131,17 +136,28 @@ public class EmailPrepareService {
     }
 
     private Reader getReaderFromMultipart(MultipartFile file) throws IOException {
-        if (Objects.isNull(file)) return new FileReader(new File("/home/guyvinay/dev/repo/assets/hr_contacts.csv"));
-        return new InputStreamReader(file.getInputStream());
+
+        if (file != null && !file.isEmpty()) {
+            return new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8);
+        }
+
+        // Fallback to classpath resource
+        Path csvPath = Paths.get("src/main/resources/data/contacts.csv");
+        if (!Files.exists(csvPath)) {
+            throw new FileNotFoundException("contacts.csv not found at " + csvPath.toAbsolutePath());
+        }
+
+        return Files.newBufferedReader(csvPath, StandardCharsets.UTF_8);
     }
+
 
     private boolean isEligibleToSend(EmailDocument emailDocument) {
         if (emailDocument == null || !emailDocument.isValidEmail()) return false;
 
         long cutoffTime = Instant.now().minus(HOURS_TO, ChronoUnit.HOURS).toEpochMilli();
 
-        return !"DISABLED".equalsIgnoreCase(emailDocument.getStatus()) && !"SUCCESS".equalsIgnoreCase(emailDocument.getStatus()) &&
-                emailDocument.getLastSentAt() <= cutoffTime &&
+        return !"DISABLED".equalsIgnoreCase(emailDocument.getStatus()) &&
+                (emailDocument.getLastSentAt() <= cutoffTime || !"FAILED".equalsIgnoreCase(emailDocument.getStatus())) &&
                 emailDocument.isResendEligible() &&
                 emailDocument.getRetryCount() <= 15;
     }
@@ -233,7 +249,7 @@ public class EmailPrepareService {
         emailDocument.setRecipientName(recipientName);
         emailDocument.setCompany(companyName);
         emailDocument.setEmailFrom("mrsinghvinay563@gmail.com");
-        emailDocument.setSubject("Java Backend Developer Application For New Opportunities");
+        emailDocument.setSubject("Java Full Stack Developer Application For New Opportunities");
 
         // --- Template & content ---
         emailDocument.setHtml(true);
