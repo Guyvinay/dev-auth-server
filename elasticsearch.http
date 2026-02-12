@@ -4,6 +4,7 @@ POST http://localhost:8080/dev-auth/api/auth/login
 Content-Type: application/json
 
 {
-  "username": "vinay",
-  "password": "password"
+  "username": "",
+  "password": ""
 }
+

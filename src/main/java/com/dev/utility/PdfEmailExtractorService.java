@@ -4,12 +4,15 @@ import com.dev.dto.email.EmailRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.HashSet;
 import java.util.List;
@@ -49,7 +52,7 @@ public class PdfEmailExtractorService {
 
             // Sales / Marketing (not real persons)
             "sales", "marketing", "business", "bd", "partnership",
-            "alliances", "growth",
+            "alliances", "growth","resume",
 
             // Finance / Ops
             "accounts", "billing", "finance", "payroll",
@@ -64,7 +67,7 @@ public class PdfEmailExtractorService {
 
             // Other common garbage prefixes
             "test", "demo", "sample", "example",
-            "agency", "agencies", "agen"
+            "agency", "agencies", "agen","tag"
     );
 
 
@@ -87,7 +90,9 @@ public class PdfEmailExtractorService {
             "comcast", "verizon", "att", "sbcglobal", "btinternet",
 
             // Old providers
-            "inbox", "fastmail", "rocketmail"
+            "inbox", "fastmail", "rocketmail","recruit",
+            "info", "support", "help", "helpdesk","careers", "career", "jobs", "job", "jobportal",
+            "vacancy", "vacancies", "openings", "opportunity","tag"
     );
 
 
@@ -167,21 +172,78 @@ public class PdfEmailExtractorService {
         writeContacts(emails);
         return emails;
     }
+    public Set<String> extractEmailsFromHtmlFiles(List<MultipartFile> htmlFiles) throws IOException {
+
+        Set<String> emails = new HashSet<>();
+
+        for (MultipartFile file : htmlFiles) {
+
+            String fileName = file.getOriginalFilename();
+            Set<String> currentEmails = new HashSet<>();
+
+            log.info("Extracting emails from HTML file {}", fileName);
+
+            try (InputStream inputStream = file.getInputStream()) {
+
+                /**
+                 * Jsoup parses the HTML safely.
+                 * It tolerates broken HTML and avoids regex-based parsing issues.
+                 */
+                Document document = Jsoup.parse(inputStream, StandardCharsets.UTF_8.name(), "");
+
+                /**
+                 * Remove script and style content to reduce noise
+                 * and avoid extracting emails from JavaScript.
+                 */
+                document.select("script, style").remove();
+
+                /**
+                 * Extract visible text only.
+                 */
+                String text = document.text();
+
+                Matcher matcher = EMAIL_PATTERN.matcher(text);
+
+                while (matcher.find()) {
+                    String email = matcher.group();
+                    email = email.replaceAll("[\\.,;:]+$", "").trim();
+                    currentEmails.add(email);
+                }
+
+                log.info("Extracted {} emails from {}", currentEmails.size(), fileName);
+                emails.addAll(currentEmails);
+
+            } catch (IOException e) {
+                log.error("Error extracting emails from {}", fileName, e);
+                throw new RuntimeException("Failed to extract emails from HTML", e);
+            }
+        }
+
+        log.info("Total {} emails extracted", emails.size());
+        writeContacts(emails);
+
+        return emails;
+    }
 
     public EmailRequest processEmailToGetNameAndCompany(String email) {
 
-        String trimmed = email.trim();
+        try {
+            String trimmed = email.trim();
 
-        String[] parts = trimmed.split("@");
+            String[] parts = trimmed.split("@");
 
-        String local = parts[0];
-        String domain = parts[1];
+            String local = parts[0];
+            String domain = parts[1];
 
-        String company = extractPrimaryDomain(domain);
+            String company = extractPrimaryDomain(domain);
 
-        String name = extractName(local);
+            String name = extractName(local);
 
-        return new EmailRequest(name, trimmed, company);
+            return new EmailRequest(name, trimmed, company);
+        } catch (Exception e) {
+            log.error("Error while converting email to EmailRequest: {}", e.getMessage(), e);
+            return null;
+        }
     }
 
     public static String extractPrimaryDomain(String domain) {
@@ -312,10 +374,15 @@ public class PdfEmailExtractorService {
 
             for (String email : emails) {
 
-                EmailRequest row = processEmailToGetNameAndCompany(email);
-
-                writer.write(formatRow(row));
-                writer.newLine();
+                try {
+                    EmailRequest row = processEmailToGetNameAndCompany(email);
+                    if(row != null) {
+                        writer.write(formatRow(row));
+                        writer.newLine();
+                    }
+                } catch (IOException e) {
+                    log.error("Erro while writing email to csv file");
+                }
             }
         }
     }
