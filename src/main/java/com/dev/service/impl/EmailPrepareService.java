@@ -3,6 +3,7 @@ package com.dev.service.impl;
 import com.dev.dto.email.EmailDocument;
 import com.dev.dto.email.EmailRequest;
 import com.dev.library.elastic.service.EmailElasticSyncService;
+import com.dev.utility.PdfEmailExtractorService;
 import com.dev.utility.grpc.email.EmailElasticServiceGrpc;
 import com.dev.utility.grpc.email.EmailLookupRequest;
 import com.dev.utility.grpc.email.EmailLookupResponse;
@@ -19,11 +20,11 @@ import org.springframework.web.multipart.MultipartFile;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -45,8 +46,9 @@ public class EmailPrepareService {
 
     private final TemplateEngine templateEngine;
     private final EmailElasticSyncService emailElasticSyncService;
-    private static final int HOURS_TO = 12;
+    private static final int HOURS_TO = 960;
     private final AsyncEmailSendService asyncEmailSendService;
+    private final PdfEmailExtractorService pdfEmailExtractorService;
 
     @GrpcClient(DEV_INTEGRATION)
     private EmailElasticServiceGrpc.EmailElasticServiceBlockingStub elasticServiceStub;
@@ -66,6 +68,8 @@ public class EmailPrepareService {
                     .forEach(doc -> existingDocs.put(doc.getEmailTo(), GrpcMapper.fromProto(doc)));
 
         }
+
+        log.info("Existing doc found: {}", existingDocs.size());
 
         for (String emailId : allEmails) {
             EmailRequest req = toSend.get(emailId);
@@ -87,6 +91,10 @@ public class EmailPrepareService {
                 );
                 emailDocument.setEmailTemplate(prepareEmailTemplate(templateVariable));
                 emailDocument.setTemplateVariables(templateVariable);
+                emailDocument.setAttachmentNames(
+                        new ArrayList<>(List.of("Vinay_Singh_Java_Backend_Developer.pdf"))
+                );
+                emailDocument.setEmailSentTimes(emailDocument.getEmailSentTimes() + 1);
             } else {
                 emailDocument = prepareEmailDocument(
                         req.getName(),
@@ -96,7 +104,7 @@ public class EmailPrepareService {
             }
             try {
                 asyncEmailSendService.sendEmail(emailDocument);
-                Thread.sleep(0);
+                Thread.sleep(2500);
             } catch (IOException | InterruptedException e) {
                 log.error("Failed to send email to: {}", emailId, e);
                 throw new RuntimeException(e);
@@ -131,17 +139,28 @@ public class EmailPrepareService {
     }
 
     private Reader getReaderFromMultipart(MultipartFile file) throws IOException {
-        if (Objects.isNull(file)) return new FileReader(new File("/home/guyvinay/dev/repo/assets/hr_contacts.csv"));
-        return new InputStreamReader(file.getInputStream());
+
+        if (file != null && !file.isEmpty()) {
+            return new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8);
+        }
+
+        // Fallback to classpath resource
+        Path csvPath = Paths.get("src/main/resources/data/contacts.csv");
+        if (!Files.exists(csvPath)) {
+            throw new FileNotFoundException("contacts.csv not found at " + csvPath.toAbsolutePath());
+        }
+
+        return Files.newBufferedReader(csvPath, StandardCharsets.UTF_8);
     }
+
 
     private boolean isEligibleToSend(EmailDocument emailDocument) {
         if (emailDocument == null || !emailDocument.isValidEmail()) return false;
 
         long cutoffTime = Instant.now().minus(HOURS_TO, ChronoUnit.HOURS).toEpochMilli();
 
-        return !"DISABLED".equalsIgnoreCase(emailDocument.getStatus()) && !"SUCCESS".equalsIgnoreCase(emailDocument.getStatus()) &&
-                emailDocument.getLastSentAt() <= cutoffTime &&
+        return !"DISABLED".equalsIgnoreCase(emailDocument.getStatus()) &&
+                (emailDocument.getLastSentAt() <= cutoffTime) &&
                 emailDocument.isResendEligible() &&
                 emailDocument.getRetryCount() <= 15;
     }
@@ -156,13 +175,26 @@ public class EmailPrepareService {
 
         log.info("Sending {} eligible emails asynchronously...", emailDocuments.size());
 
-        for (EmailDocument email : emailDocuments) {
+        for (EmailDocument emailDocument : emailDocuments) {
             try {
+                EmailRequest emailRequest = pdfEmailExtractorService.processEmailToGetNameAndCompany(emailDocument.getEmailTo());
+                if(StringUtils.isNotBlank(emailRequest.getName())) emailDocument.setRecipientName(emailRequest.getName());
+                if(StringUtils.isNotBlank(emailRequest.getCompany())) emailDocument.setCompany(emailRequest.getCompany());
+                Map<String, String> templateVariable = Map.of(
+                        "name", emailDocument.getRecipientName(),
+                        "company", emailDocument.getCompany()
+                );
+                emailDocument.setSubject("Java Full Stack Developer Application Immediate joiner");
+                emailDocument.setTemplateVariables(templateVariable);
+                emailDocument.setEmailTemplate(prepareEmailTemplate(templateVariable));
+                emailDocument.setAttachmentNames(
+                        new ArrayList<>(List.of("Vinay_Singh_Java_Backend_Developer.pdf"))
+                );
                 // @Async non-blocking parallel send
-                asyncEmailSendService.sendEmail(email);
+                asyncEmailSendService.sendEmail(emailDocument);
                 Thread.sleep(2000);
             } catch (Exception e) {
-                log.error("Failed to trigger email send for {}: {}", email.getEmailTo(), e.getMessage(), e);
+                log.error("Failed to trigger email send for {}: {}", emailDocument.getEmailTo(), e.getMessage(), e);
             }
         }
 
@@ -173,8 +205,8 @@ public class EmailPrepareService {
     public List<EmailDocument> getEligibleEmailDocuments(int hours) throws IOException {
 //        hours = DUPLICATE_DAYS; // comment if require custom days.
         Instant instant = Instant.now();
-        long lte = instant.minus(0, ChronoUnit.HOURS).toEpochMilli();
-        long gte = instant.minus(hours + 120, ChronoUnit.HOURS).toEpochMilli();
+        long lte = instant.minus(hours, ChronoUnit.HOURS).toEpochMilli();
+        long gte = instant.minus(hours + 72, ChronoUnit.HOURS).toEpochMilli();
         return emailElasticSyncService.getEligibleEmails(gte, lte);
     }
 
@@ -233,7 +265,7 @@ public class EmailPrepareService {
         emailDocument.setRecipientName(recipientName);
         emailDocument.setCompany(companyName);
         emailDocument.setEmailFrom("mrsinghvinay563@gmail.com");
-        emailDocument.setSubject("Java Backend Developer Application For New Opportunities");
+        emailDocument.setSubject("Java Full Stack Developer Application Immediate joiner");
 
         // --- Template & content ---
         emailDocument.setHtml(true);

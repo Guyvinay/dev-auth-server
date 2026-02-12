@@ -2,7 +2,7 @@
 # **Dev-Auth: Authentication & Authorization Service**
 
 ## **1. Project Overview**
-**Dev-Auth** is a Spring Boot-based authentication and authorization service that provides user, role, privilege, tenant, and organization management. It uses **JWT tokens with Nimbus JOSE** for authentication and secures API access.
+**Dev-Auth-Server** is a Spring Boot-based authentication and authorization service that provides user, role, privilege, tenant, and organization management. It uses **JWT tokens with Nimbus JOSE** for authentication and secures API access.
 
 ## **2. Tech Stack**
 - **Spring Boot** (Core Framework)
@@ -10,10 +10,12 @@
 - **Nimbus JOSE + JWT** (Token Handling)
 - **Hibernate & JPA** (ORM & Entity Management)
 - **Hibernate Envers** (Auditing)
+- **Spring Main Sender** (Email Sending)
 - **Liquibase** (Database Version Control)
 - **PostgreSQL** (Database)
 - **Docker / Podman** (Containerization)
 - **Swagger / OpenAPI** (API Documentation)
+
 
 ## **3. Features & Capabilities**
 - **User Management** (Registration, Login, Profile Management)
@@ -423,5 +425,28 @@ erDiagram
 
 
 ```
+
+# Spring Boot Actuator Endpoints Reference
+
+| Endpoint                     | Description                                                                                                                        |
+|------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| `/actuator/health`           | Returns overall application health status (UP/DOWN) and basic dependency checks; used by load balancers and uptime monitors.       |
+| `/actuator/health/liveness`  | Indicates whether the application process is alive; used by Kubernetes liveness probes to restart unhealthy pods.                  |
+| `/actuator/health/readiness` | Indicates whether the application is ready to receive traffic; used by Kubernetes readiness probes during deployments and scaling. |
+| `/actuator/info`             | Exposes application metadata such as build version, Git commit, and custom info properties for release traceability.               |
+| `/actuator/metrics`          | Lists and queries Micrometer application metrics including JVM, HTTP, CPU, memory, and connection pool statistics.                 |
+| `/actuator/prometheus`       | Exposes metrics in Prometheus format for scraping by monitoring systems like Prometheus and visualization in Grafana.              |
+| `/actuator/loggers`          | Allows viewing and modifying application log levels at runtime without restarting the service.                                     |
+| `/actuator/threaddump`       | Provides a snapshot of all live JVM threads and stack traces for debugging deadlocks and performance issues.                       |
+| `/actuator/heapdump`         | Generates a JVM heap dump file used for offline memory leak and object retention analysis.                                         |
+| `/actuator/env`              | Displays environment properties and configuration values from all property sources including system and application configs.       |
+| `/actuator/configprops`      | Shows all `@ConfigurationProperties` beans and their bound values for configuration debugging.                                     |
+| `/actuator/beans`            | Lists all Spring-managed beans in the application context along with their dependencies.                                           |
+| `/actuator/mappings`         | Displays all HTTP request mappings and handler methods registered in the application.                                              |
+| `/actuator/caches`           | Shows cache statistics and cache manager details such as hit/miss ratios for supported caching providers.                          |
+| `/actuator/scheduledtasks`   | Lists all scheduled tasks including cron, fixed-rate, and fixed-delay jobs currently registered.                                   |
+| `/actuator/flyway`           | Displays Flyway database migration status and applied schema versions (if Flyway is enabled).                                      |
+| `/actuator/liquibase`        | Displays Liquibase changelog execution status and migration history (if Liquibase is enabled).                                     |
+| `/actuator/shutdown`         | Gracefully shuts down the application when enabled; typically used only in controlled admin environments.                          |
 
 > **Note:** This Mermaid diagram will render correctly in environments that support Mermaid.js, such as GitHub, GitLab, and some Markdown editors.
