@@ -15,4 +15,3 @@ EXPOSE 8000
 # Step 5: Define the command to run the Spring Boot application
 # Runs the JAR file using Java
 CMD ["java", "-jar", "/app/dev-auth-server.jar"]
-# java -jar /app-jar executes and start the application.

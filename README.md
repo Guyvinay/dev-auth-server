@@ -2,7 +2,7 @@
 # **Dev-Auth: Authentication & Authorization Service**
 
 ## **1. Project Overview**
-**Dev-Auth-Server** is a Spring Boot-based authentication and authorization service that provides user, role, privilege, tenant, and organization management. It uses **JWT tokens with Nimbus JOSE** for authentication and secures API access.
+**Dev-Auth** is a Spring Boot-based authentication and authorization service that provides user, role, privilege, tenant, and organization management. It uses **JWT tokens with Nimbus JOSE** for authentication and secures API access.
 
 ## **2. Tech Stack**
 - **Spring Boot** (Core Framework)
@@ -10,12 +10,10 @@
 - **Nimbus JOSE + JWT** (Token Handling)
 - **Hibernate & JPA** (ORM & Entity Management)
 - **Hibernate Envers** (Auditing)
-- **Spring Main Sender** (Email Sending)
 - **Liquibase** (Database Version Control)
 - **PostgreSQL** (Database)
 - **Docker / Podman** (Containerization)
 - **Swagger / OpenAPI** (API Documentation)
-
 
 ## **3. Features & Capabilities**
 - **User Management** (Registration, Login, Profile Management)
@@ -448,5 +446,6 @@ erDiagram
 | `/actuator/flyway`           | Displays Flyway database migration status and applied schema versions (if Flyway is enabled).                                      |
 | `/actuator/liquibase`        | Displays Liquibase changelog execution status and migration history (if Liquibase is enabled).                                     |
 | `/actuator/shutdown`         | Gracefully shuts down the application when enabled; typically used only in controlled admin environments.                          |
+
 
 > **Note:** This Mermaid diagram will render correctly in environments that support Mermaid.js, such as GitHub, GitLab, and some Markdown editors.
